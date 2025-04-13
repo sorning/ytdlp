@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  yt-dlp-flask:
+    build: .
+    container_name: yt-dlp-flask2.41
+    restart: unless-stopped
+    volumes:
+      - "./downloads:/downloads"
+    ports:
+      - "5053:5000"
+    environment:
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  celery:
+    build: .
+    container_name: celery
+    command: celery -A app.celery worker --loglevel=info
+    volumes:
+      - "./downloads:/downloads"
+    depends_on:
+      - redis
+      - yt-dlp-flask
